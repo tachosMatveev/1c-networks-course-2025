@@ -29,7 +29,7 @@ notes = [Note(id=0,title="fefe",content="ssssss"), Note(id=1,title="fefe",conten
 
 @app.route("/")
 def test():
-    return "<p>Hello from notes server!</p>"
+    return "<p>Hello from notes server!!</p>"
 
 # GET /notes → list all # POST /notes → create
 @app.route("/notes", methods=['GET', 'POST'])
@@ -47,6 +47,8 @@ def noteWork():
             redisDB.hset("id", int(id), json.dumps(noteToPost.to_json()))
         except Exception as e:
             print(f"🚨 Radis error occurred: {e}")
+            return jsonify({"error": str(e)}), 500
+
 
         return jsonify({'note': noteToPost.to_json()}), 201
     else:
@@ -54,12 +56,14 @@ def noteWork():
             listAllValues = redisDB.hgetall('id')
         except Exception as e:
             print(f"🚨 Radis error occurred: {e}")
+            return jsonify({"error": str(e)}), 500
 
         print("resp", listAllValues)
         print("resp items", listAllValues.items())
         print("resp values", listAllValues.values())
 
-        return listAllValues
+        notes_list = [json.loads(v) for v in listAllValues.values()]
+        return jsonify(notes_list), 200
 
 # GET /notes/:id → retrieve one
 @app.route("/notes/<int:id>", methods=['GET', 'PUT', 'DELETE'])
@@ -76,13 +80,13 @@ def findNote(id):
         newNote = Note(id, title, content)
         redisDB.hset('id', id, json.dumps(newNote.to_json()))
 
-        return redisDB.hget('id', id)
+        return redisDB.hget('id', id), 200
 
     elif request.method == 'DELETE':
         numberOfDeletedItems = redisDB.hdel('id', id)
         if numberOfDeletedItems == 0:
             return "Resource not found", 404
         else:
-            return "This was successful!", 200
+            return "No Content", 204
     else:
-        return f"<p>id: {id} not found</p>"
+        return f"<p>id: {id} not found</p>", 404
